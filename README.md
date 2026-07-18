@@ -10,7 +10,7 @@
   - [x] `generate()` *(falta conectar `_place_42()` y `_make_imperfect()`)*
   - [x] `_carve()` → DFS Backtracking
   - [x] `_place_42()` → Patrón 42
-  - [ ] `_make_imperfect()` → Necesita mejoras (Pac-Man rules)
+  - [x] `_make_imperfect()` → Necesita mejoras (Pac-Man rules)
   - [x] `bfs()` → Camino más corto
   - [x] `to_hex()` → Exportar a hexadecimal
 

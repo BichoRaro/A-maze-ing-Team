@@ -152,31 +152,102 @@ class MazeGenerator:
                     "West": True
                 }
 
-    def _make_imperfect(self, probability: float = 0.3) -> None:
-        """Derribe paredes extra aleatoriamente para crear múltiples caminos.
+    def _add_loops(self, probability: float = 0.3) -> None:
+        """Derriba paredes extra aleatoriamente para crear
+        múltiples caminos."""
 
-        Solo revisa paredes Este y Sur de cada celda para no procesar
-        la misma pared dos veces (cada pared es compartida por 2 celdas).
-        """
-
+        # Recorremos cada fila del laberinto
         for y in range(self.height):
+            # Recorremos cada columna de esa fila
             for x in range(self.width):
 
-                # Intentamos derribar la pared Este con
-                # probabilidad "probability"
+                # Intentamos derribar la pared Este:
+                # - que exista celda vecina al Este (no es borde derecho)
+                # - que la pared Este esté cerrada (True)
+                # - que el número aleatorio sea menor que probability
+                # (30% de veces)
                 if (x + 1 < self.width
                         and self.grid[y][x]['East'] is True
                         and self.rng.random() < probability):
+                    # Abrimos la pared Este de la celda actual
                     self.grid[y][x]['East'] = False
+                    # Abrimos la pared Oeste de la celda vecina (coherencia)
                     self.grid[y][x + 1]['West'] = False
 
-                # Intentamos derribar la pared Sur con
-                # probabilidad "probability"
+                # Mismo proceso pero para la pared Sur
                 if (y + 1 < self.height
                         and self.grid[y][x]['South'] is True
                         and self.rng.random() < probability):
+                    # Abrimos la pared Sur de la celda actual
                     self.grid[y][x]['South'] = False
-                    self.grid[y+1][x]['North'] = False
+                    # Abrimos la pared Norte de la celda de abajo (coherencia)
+                    self.grid[y + 1][x]['North'] = False
+
+    def _make_imperfect(self, probability: float = 0.3) -> None:
+        """Convierte el laberinto en un tablero tipo Pac-Man."""
+
+        # Paso 1: crear bucles derribando paredes extra aleatoriamente
+        self._add_loops(probability)
+
+        # Paso 2: garantizar que las 4 esquinas tienen al menos una salida
+        self._open_corners()
+
+        # Paso 3: garantizar que el centro tiene al menos una salida
+        self._open_center()
+
+    def _open_corners(self) -> None:
+        """Asegura que las 4 esquinas tienen al menos una conexión abierta."""
+
+        # Definimos las 4 esquinas con sus dos paredes internas posibles
+        # Formato: (x, y, primera_pared_interna, segunda_pared_interna)
+        corners = [
+            (0, 0, 'East', 'South'),                   # superior izquierda
+            (self.width - 1, 0, 'West', 'South'),      # superior derecha
+            (0, self.height - 1, 'East', 'North'),     # inferior izquierda
+            (self.width - 1, self.height - 1, 'West', 'North'),
+            # inferior derecha
+        ]
+
+        # Para cada esquina desempaquetamos su posición y sus paredes internas
+        for x, y, dir1, dir2 in corners:
+            cell = self.grid[y][x]
+
+            # Si alguna de las dos paredes ya está abierta (False),
+            # la esquina ya tiene conexión → pasamos a la siguiente
+            if not cell[dir1] or not cell[dir2]:
+                continue
+
+            # Si las dos paredes están cerradas (True), la esquina está aislada
+            # → calculamos la posición de la celda vecina en dirección dir1
+            dx, dy = self.Move[dir1]
+            nx, ny = x + dx, y + dy
+
+            # Abrimos la pared dir1 de la esquina
+            cell[dir1] = False
+            # Abrimos la pared opuesta de la celda vecina (coherencia)
+            self.grid[ny][nx][self.opposite_move[dir1]] = False
+
+    def _open_center(self) -> None:
+        """Asegura que el centro del laberinto tiene al
+        menos una conexión abierta."""
+
+        # Calculamos las coordenadas del centro del laberinto
+        cx = self.width // 2
+        cy = self.height // 2
+
+        # Accedemos a la celda central (recuerda: [fila][columna] = [y][x])
+        cell = self.grid[cy][cx]
+
+        # Si ya tiene alguna pared abierta (False), no hacemos nada
+        # any() devuelve True si al menos UNA condición es True
+        if any(not cell[d] for d in ['North', 'East', 'South', 'West']):
+            return
+
+        # Si está completamente cerrada (puede pasar si cae
+        # dentro del patrón 42)
+        # abrimos la pared Este y la pared Oeste de su vecina (coherencia)
+        self.grid[cy][cx]['East'] = False
+        self.grid[cy][cx + 1]['West'] = False
 
     def bfs(self) -> List[str]:
         """Encuentra el camino más corto entre entrada y salida usando BFS.
