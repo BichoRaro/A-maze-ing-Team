@@ -60,7 +60,7 @@ class MazeGenerator:
         # (se rellena en generate())
         self.visited: List[List[bool]] = []
 
-    def generate(self) -> None:
+    def generate(self, perfect: bool = True) -> None:
         """Prepara el grid con todas las paredes cerradas y lanza el DFS."""
 
         # Todas las celdas empiezan con las 4 paredes cerradas (True)
@@ -79,6 +79,9 @@ class MazeGenerator:
         # Lanzamos el DFS desde la celda de entrada
         entry_x, entry_y = self.entry
         self._carve(entry_x, entry_y)
+        self._place_42()
+        if not perfect:
+            self._make_imperfect()
 
     def _carve(self, x: int, y: int) -> None:
         """Algoritmo DFS recursivo que genera el laberinto derribando paredes.

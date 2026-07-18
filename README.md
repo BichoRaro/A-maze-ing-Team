@@ -14,14 +14,14 @@
   - [x] `bfs()` → Camino más corto
   - [x] `to_hex()` → Exportar a hexadecimal
 
+- [x] **generator.py**
+  - [x] `generate()`
+    - Conectar `_place_42()`
+    - Conectar `_make_imperfect()`
+
 ---
 
 ## ⬜ POR HACER (Obligatorio)
-
-- [ ] **generator.py**
-  - [ ] `generate()`
-    - Conectar `_place_42()`
-    - Conectar `_make_imperfect()`
 
 - [ ] **output_writer.py**
   - [ ] Escribir el fichero de salida
