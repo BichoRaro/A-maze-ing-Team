@@ -51,7 +51,8 @@ def main() -> None:
         exit=exit_cell,
         shortest_path=path_coords
     )
-    display.run_menu()
+    display.show_path = False
+    display.render()
 
 
 if __name__ == "__main__":
