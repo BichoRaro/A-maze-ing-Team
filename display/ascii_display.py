@@ -36,12 +36,12 @@ class AsciiDisplay:
         
         for x in range(width):
             cell_value = self.grid[last_row_index][x]
-            bottom_line += self.wall_color + "+" + self.reset_color
+            bottom_line += self.wall_color + "█" + self.reset_color
             if self._cell_has_wall_south(cell_value):
-                bottom_line += self.wall_color + "---" + self.reset_color
+                bottom_line += self.wall_color + "███" + self.reset_color
             else:
                 bottom_line += "   "
-        bottom_line += self.wall_color + "+" + self.reset_color
+        bottom_line += self.wall_color + "█" + self.reset_color
         print(bottom_line)
 
     def toggle_path(self) -> None:
@@ -81,16 +81,16 @@ class AsciiDisplay:
             # Top walls North
             # siempre dibujamos un '+', y luego '---' si hay pared N, o '   '
             # si esta abierto.
-            top_line += self.wall_color + "+" + self.reset_color
+            top_line += self.wall_color + "█" + self.reset_color
             if self._cell_has_wall_north(cell_value):
-                top_line += self.wall_color + "---" + self.reset_color
+                top_line += self.wall_color + "███" + self.reset_color
             else:
                 top_line += "   "
             
             # Middle line (west wall + cell content + East wall)
             # West wall
             if self._cell_has_wall_west(cell_value):
-                mid_line += self.wall_color + "|" + self.reset_color
+                mid_line += self.wall_color + "█" + self.reset_color
             else:
                 mid_line += " "
 
@@ -108,11 +108,11 @@ class AsciiDisplay:
 
             # East wall
             if self._cell_has_wall_east(cell_value):
-                mid_line += self.wall_color + "|" + self.reset_color
+                mid_line += self.wall_color + "█" + self.reset_color
             else:
                 mid_line += " "
 
         # Cerrara la fila con un '+' al final de la linea superior
-        top_line += self.wall_color + "+" + self.reset_color
+        top_line += self.wall_color + "█" + self.reset_color
 
         return top_line, mid_line

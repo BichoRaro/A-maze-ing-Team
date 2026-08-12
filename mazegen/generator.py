@@ -346,3 +346,40 @@ class MazeGenerator:
 
         # Unimos todas las filas con salto de línea
         return '\n'.join(lines)
+
+
+    def grid_to_ints(self) -> list[list[int]]:
+        """Devuelve grid como enteros (bits) para el display ASCII"""
+        int_grid: list[list[int]] = []
+
+        for row in self.grid:
+            int_row: list[int] = []
+            for cell in row:
+                value = 0
+                for direction, wall_value in self.walls.items():
+                    if cell[direction]:
+                        value += wall_value
+                int_row.append(value)
+            int_grid.append(int_row)
+    
+        return int_grid
+
+
+    def path_to_coords(self, path: list[str]) -> list[tuple[int, int]]:
+        """Convierte lista direcciones a cordenadas"""
+        x, y = self. entry
+        coords: list[tuple[int, int]] = [(x, y)]
+
+        letter_to_move = {
+            "N": (0, -1),
+            "E": (1, 0),
+            "S": (0, 1),
+            "W": (-1, 0),
+        }
+
+        for step in path:
+            dx, dy = letter_to_move[step]
+            x += dx
+            y += dy
+            coords.append((x, y))
+        return coords
