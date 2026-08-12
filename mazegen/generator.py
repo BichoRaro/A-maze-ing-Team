@@ -347,7 +347,6 @@ class MazeGenerator:
         # Unimos todas las filas con salto de línea
         return '\n'.join(lines)
 
-
     def grid_to_ints(self) -> list[list[int]]:
         """Devuelve grid como enteros (bits) para el display ASCII"""
         int_grid: list[list[int]] = []
@@ -361,9 +360,8 @@ class MazeGenerator:
                         value += wall_value
                 int_row.append(value)
             int_grid.append(int_row)
-    
-        return int_grid
 
+        return int_grid
 
     def path_to_coords(self, path: list[str]) -> list[tuple[int, int]]:
         """Convierte lista direcciones a cordenadas"""
