@@ -20,15 +20,19 @@ class AsciiDisplay:
             entry: Coord,
             exit: Coord,
             shortest_path: List[Coord],
+            pattern_42: List[Coord],
     ) -> None:
         self.grid = grid
         self.entry = entry
         self.exit = exit
         self.shortest_path = shortest_path
+        self.pattern_42 = pattern_42
         self.show_path = False
         self.color_index = 0
-        self.wall_color = COLORS[self.color_index]
+        self.wall_color = "\033[37m"
         self.reset_color = "\033[0m"
+        self.bg_open = "\033[40m"
+        self.bg_42 = "\033[100m"
 
     def render(self) -> None:
         """Renderiza el laberinto completo en la terminal."""
@@ -39,7 +43,6 @@ class AsciiDisplay:
             print(top_line)
             print(mid_line)
 
-        # Línea inferior (paredes Sur de la última fila)
         bottom_line = ""
         width = len(self.grid[0])
         last_row = height - 1
@@ -50,7 +53,7 @@ class AsciiDisplay:
             if self._cell_has_wall_south(cell_value):
                 bottom_line += self.wall_color + "███" + self.reset_color
             else:
-                bottom_line += "   "
+                bottom_line += self.bg_open + "   " + self.reset_color
         bottom_line += self.wall_color + "█" + self.reset_color
         print(bottom_line)
 
@@ -79,8 +82,6 @@ class AsciiDisplay:
             choice = input("Choice? (1-4): ").strip()
 
             if choice == "1":
-                # La regeneración la maneja el main
-                # aquí solo notificamos al usuario
                 print("Re-generate not available from display.")
                 print("Restart the program to generate a new maze.")
             elif choice == "2":
@@ -117,32 +118,32 @@ class AsciiDisplay:
 
         for x in range(width):
             cell_value = self.grid[y][x]
+            coord = (x, y)
 
             # Pared Norte
             top_line += self.wall_color + "█" + self.reset_color
             if self._cell_has_wall_north(cell_value):
                 top_line += self.wall_color + "███" + self.reset_color
             else:
-                top_line += "   "
+                top_line += self.bg_open + "   " + self.reset_color
 
             # Pared Oeste
             if self._cell_has_wall_west(cell_value):
                 mid_line += self.wall_color + "█" + self.reset_color
             else:
-                mid_line += " "
+                mid_line += self.bg_open + " " + self.reset_color
 
             # Contenido de la celda
-            coord = (x, y)
-            if coord == self.entry:
-                char = "E"
+            if coord in self.pattern_42:
+                mid_line += "\033[100m   \033[0m"   # gris oscuro brillante
+            elif coord == self.entry:
+                mid_line += "\033[45m   \033[0m"    # bloque magenta/rosa
             elif coord == self.exit:
-                char = "X"
+                mid_line += "\033[41m   \033[0m"    # bloque rojo
             elif self.show_path and coord in self.shortest_path:
-                char = "."
+                mid_line += "\033[46m   \033[0m"    # bloque cian
             else:
-                char = " "
-
-            mid_line += f" {char} "
+                mid_line += self.bg_open + "   " + self.reset_color
 
         # Cerrar la fila con el borde derecho
         top_line += self.wall_color + "█" + self.reset_color

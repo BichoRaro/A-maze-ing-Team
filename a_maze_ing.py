@@ -19,7 +19,7 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator,
         )
         choice = input("Choice? (1-4): "). strip()
 
-        if choice =="1":
+        if choice == "1":
             perfect = config["perfect"]
             entry = config["entry"]
             exit_cell = config["exit"]
@@ -47,7 +47,6 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator,
             break
 
 
-
 def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,
                                                              list[str]]:
     width = config["width"]
@@ -65,7 +64,7 @@ def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,
         exit_cell=exit_cell,
         seed=seed,
     )
-    
+
     maze.generate(perfect=perfect)
 
     hex_map = maze.to_hex()
@@ -81,7 +80,8 @@ def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,
         grid=int_grid,
         entry=entry,
         exit=exit_cell,
-        shortest_path=path_coords
+        shortest_path=path_coords,
+        pattern_42=maze.pattern_42_cells
     )
     display.show_path = False
     display.render()
@@ -106,7 +106,6 @@ def main() -> None:
 
     run_menu(config, maze, display)
 
-    
 
 if __name__ == "__main__":
     main()

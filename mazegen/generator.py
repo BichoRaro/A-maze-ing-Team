@@ -34,6 +34,7 @@ class MazeGenerator:
                  seed: Optional[int] = None) -> None:
         """Inicializa el generador con el tamaño, entrada, salida y semilla."""
 
+        self.pattern_42_cells: List[Tuple[int, int]] = []
         # Tamaño del laberinto
         self.width = width
         self.height = height
@@ -123,6 +124,8 @@ class MazeGenerator:
         """Dibuja el número 42 en el centro del laberinto
         usando celdas con todas las paredes cerradas."""
 
+        self.pattern_42_cells = []
+
         pattern_4 = [
             (0, 0),
             (0, 1),
@@ -154,6 +157,7 @@ class MazeGenerator:
                     "South": True,
                     "West": True
                 }
+                self.pattern_42_cells.append((x_real, y_real))
 
     def _add_loops(self, probability: float = 0.3) -> None:
         """Derriba paredes extra aleatoriamente para crear
