@@ -6,23 +6,23 @@ from output_writer import write_output
 from typing import Any, Dict, Tuple
 
 
-def run_menu(config: Dict[str, Any], maze: MazeGenerator,
-             display: AsciiDisplay) -> None:
-    """Bucle interactivo de menu principal."""
+def run_menu(config: Dict[str, Any], maze: MazeGenerator, display: AsciiDisplay) -> None:
+    """Bucle interactivo con el usuario."""
     while True:
-        print(
-            "=== A-Maze-ing ===\n"
-            "1. Re-generate a new maze\n"
-            "2. Show / Hide the shortest path\n"
-            "3. Rotate the wall colours\n"
-            "4. Quit"
-        )
-        choice = input("Choice? (1-4): "). strip()
+        print("\n=== A-Maze-ing ===")
+        print("1. Re-generate a new maze")
+        print("2. Show / Hide the shortest path")
+        print("3. Rotate the wall colours")
+        print("4. Quit")
+        choice = input("Choice? (1-4): ").strip()
 
         if choice == "1":
-            perfect = config["perfect"]
+            # Re-generar: usar el MISMO maze y MISMO display
+            width = config["width"]
+            height = config["height"]
             entry = config["entry"]
             exit_cell = config["exit"]
+            perfect = config["perfect"]
             output_file = config["output_file"]
 
             maze.generate(perfect=perfect)
@@ -37,14 +37,20 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator,
             display.shortest_path = path_coords
             display.show_path = False
             display.render()
+
         elif choice == "2":
             display.toggle_path()
             display.render()
+
         elif choice == "3":
-            print("Falta aplicar canvio de color??")
+            display.rotate_color()
+            display.render()
+
         elif choice == "4":
-            print("Saliendo del programa.")
+            print("Goodbye!")
             break
+        else:
+            print("Invalid choice. Please enter 1-4.")
 
 
 def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,

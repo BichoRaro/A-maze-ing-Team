@@ -70,30 +70,6 @@ class AsciiDisplay:
         self.color_index = (self.color_index + 1) % len(COLORS)
         self.wall_color = COLORS[self.color_index]
 
-    def run_menu(self) -> None:
-        """Bucle interactivo con opciones 1-4."""
-        while True:
-            self.render()
-            print("\n=== A-Maze-ing ===")
-            print("1. Re-generate a new maze")
-            print("2. Show / Hide the shortest path")
-            print("3. Rotate the wall colours")
-            print("4. Quit")
-            choice = input("Choice? (1-4): ").strip()
-
-            if choice == "1":
-                print("Re-generate not available from display.")
-                print("Restart the program to generate a new maze.")
-            elif choice == "2":
-                self.toggle_path()
-            elif choice == "3":
-                self.rotate_color()
-            elif choice == "4":
-                print("Goodbye!")
-                break
-            else:
-                print("Invalid choice. Please enter 1-4.")
-
     def _cell_has_wall_north(self, value: int) -> bool:
         """True si la celda tiene pared Norte (bit 0)."""
         return bool(value & 1)
