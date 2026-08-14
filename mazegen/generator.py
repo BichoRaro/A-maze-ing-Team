@@ -61,6 +61,11 @@ class MazeGenerator:
         # (se rellena en generate())
         self.visited: List[List[bool]] = []
 
+    def regenerate(self) -> None:
+        """Genera una nueva seed aleatoria y resetea el rng."""
+        self.seed = random.randint(0, 1_000_000)
+        self.rng = random.Random(self.seed)
+
     def generate(self, perfect: bool = True) -> None:
         """Prepara el grid con todas las paredes cerradas y lanza el DFS."""
 
@@ -76,49 +81,62 @@ class MazeGenerator:
             [False for _ in range(self.width)]
             for _ in range(self.height)
         ]
-
+        self._place_42()
         # Lanzamos el DFS desde la celda de entrada
         entry_x, entry_y = self.entry
         self._carve(entry_x, entry_y)
-        self._place_42()
         if not perfect:
             self._make_imperfect()
 
     def _carve(self, x: int, y: int) -> None:
-        """Algoritmo DFS recursivo que genera el laberinto derribando paredes.
+        """Algoritmo DFS iterativo que genera el laberinto derribando paredes.
 
-        Marca la celda actual como visitada, baraja las direcciones
-        aleatoriamente y excava hacia las celdas vecinas no visitadas.
-        El backtracking ocurre automáticamente al
-        terminar cada llamada recursiva.
+        Usa una pila explícita en vez de recursión para evitar
+        el límite de recursión de Python en laberintos grandes.
+        El backtracking ocurre cuando la pila retrocede al elemento anterior.
         """
 
-        # Marcamos la celda actual como visitada
+        # Usamos una pila explícita en vez de llamadas recursivas
+        stack = [(x, y)]
+
+        # Marcamos la celda inicial como visitada
         self.visited[y][x] = True
 
-        # Barajamos las direcciones para generar un laberinto aleatorio
-        directions = ['North', 'East', 'South', 'West']
-        self.rng.shuffle(directions)
+        while stack:
+            # Cogemos la celda actual (la última de la pila)
+            cx, cy = stack[-1]
 
-        for direction in directions:
-            # Calculamos el desplazamiento y la posición de la celda vecina
-            dx, dy = self.Move[direction]
-            nx = x + dx
-            ny = y + dy
+            # Barajamos las direcciones para generar un laberinto aleatorio
+            directions = ['North', 'East', 'South', 'West']
+            self.rng.shuffle(directions)
 
-            # Solo avanzamos si la vecina existe y no fue visitada
-            if (0 <= nx < self.width
-                    and 0 <= ny < self.height
-                    and not self.visited[ny][nx]):
+            # Buscamos una dirección válida (vecina no visitada)
+            moved = False
+            for direction in directions:
+                dx, dy = self.Move[direction]
+                nx = cx + dx
+                ny = cy + dy
 
-                # Derribamos la pared entre la celda actual y la vecina
-                # (hay que actualizar las DOS celdas para mantener coherencia)
-                opposite = self.opposite_move[direction]
-                self.grid[y][x][direction] = False
-                self.grid[ny][nx][opposite] = False
+                # Solo avanzamos si la vecina existe y no fue visitada
+                if (0 <= nx < self.width
+                        and 0 <= ny < self.height
+                        and not self.visited[ny][nx]):
 
-                # Llamada recursiva: nos movemos a la celda vecina
-                self._carve(nx, ny)
+                    # Derribamos la pared entre la celda actual y la vecina
+                    opposite = self.opposite_move[direction]
+                    self.grid[cy][cx][direction] = False
+                    self.grid[ny][nx][opposite] = False
+
+                    # Marcamos la vecina como visitada y la añadimos a la pila
+                    self.visited[ny][nx] = True
+                    stack.append((nx, ny))
+                    moved = True
+                    break  # ← importante: solo avanzamos UNA dirección por vuelta
+
+            # Si no encontramos ninguna vecina válida → backtrack
+            # (sacamos la celda actual de la pila y volvemos a la anterior)
+            if not moved:
+                stack.pop()
 
     def _place_42(self) -> None:
         """Dibuja el número 42 en el centro del laberinto
@@ -130,12 +148,12 @@ class MazeGenerator:
             (0, 0),
             (0, 1),
             (0, 2), (1, 2), (2, 2),
-            (2, 3),
-            (2, 4),
+                            (2, 3),
+                            (2, 4),
         ]
         pattern_2 = [
             (4, 0), (5, 0), (6, 0),
-            (6, 1),
+                            (6, 1),
             (4, 2), (5, 2), (6, 2),
             (4, 3),
             (4, 4), (5, 4), (6, 4),
@@ -146,18 +164,23 @@ class MazeGenerator:
 
         full_pattern = pattern_4 + pattern_2
 
-        for dx, dy in full_pattern:
-            x_real = x0 + dx
-            y_real = y0 + dy
-            if (0 <= x_real < self.width
-                    and 0 <= y_real < self.height):
-                self.grid[y_real][x_real] = {
-                    "North": True,
-                    "East": True,
-                    "South": True,
-                    "West": True
-                }
-                self.pattern_42_cells.append((x_real, y_real))
+        # Calcular todas las celdas reales del patrón
+        cells = [
+            (x0 + dx, y0 + dy)
+            for dx, dy in full_pattern
+            if 0 <= x0 + dx < self.width and 0 <= y0 + dy < self.height
+        ]
+
+        # Dibujar el patrón
+        for x_real, y_real in cells:
+            self.grid[y_real][x_real] = {
+                "North": True,
+                "East": True,
+                "South": True,
+                "West": True
+            }
+            self.visited[y_real][x_real] = True
+            self.pattern_42_cells.append((x_real, y_real))
 
     def _add_loops(self, probability: float = 0.3) -> None:
         """Derriba paredes extra aleatoriamente para crear
@@ -174,6 +197,8 @@ class MazeGenerator:
                 # - que el número aleatorio sea menor que probability
                 # (30% de veces)
                 if (x + 1 < self.width
+                        and (x, y) not in self.pattern_42_cells
+                        and (x + 1, y) not in self.pattern_42_cells
                         and self.grid[y][x]['East'] is True
                         and self.rng.random() < probability):
                     # Abrimos la pared Este de la celda actual
@@ -183,6 +208,8 @@ class MazeGenerator:
 
                 # Mismo proceso pero para la pared Sur
                 if (y + 1 < self.height
+                        and (x, y) not in self.pattern_42_cells
+                        and (x, y + 1) not in self.pattern_42_cells
                         and self.grid[y][x]['South'] is True
                         and self.rng.random() < probability):
                     # Abrimos la pared Sur de la celda actual
@@ -241,6 +268,9 @@ class MazeGenerator:
         # Calculamos las coordenadas del centro del laberinto
         cx = self.width // 2
         cy = self.height // 2
+
+        if (cx, cy) in self.pattern_42_cells:
+            return
 
         # Accedemos a la celda central (recuerda: [fila][columna] = [y][x])
         cell = self.grid[cy][cx]

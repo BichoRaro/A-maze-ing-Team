@@ -29,32 +29,31 @@ class AsciiDisplay:
         self.pattern_42 = pattern_42
         self.show_path = False
         self.color_index = 0
+
+        # Color de las paredes
         self.wall_color = "\033[37m"
         self.reset_color = "\033[0m"
+
+        # Fondo de las celdas
         self.bg_open = "\033[40m"
+
+        # Color del 42
         self.bg_42 = "\033[100m"
 
     def render(self) -> None:
         """Renderiza el laberinto completo en la terminal."""
+
         height = len(self.grid)
 
         for y in range(height):
-            top_line, mid_line = self._render_row(y)
+            top_line = self._render_top_line(y)
+            mid_line = self._render_mid_line(y)
+
             print(top_line)
             print(mid_line)
 
-        bottom_line = ""
-        width = len(self.grid[0])
-        last_row = height - 1
-
-        for x in range(width):
-            cell_value = self.grid[last_row][x]
-            bottom_line += self.wall_color + "█" + self.reset_color
-            if self._cell_has_wall_south(cell_value):
-                bottom_line += self.wall_color + "███" + self.reset_color
-            else:
-                bottom_line += self.bg_open + "   " + self.reset_color
-        bottom_line += self.wall_color + "█" + self.reset_color
+        # Última línea horizontal
+        bottom_line = self._render_bottom_line()
         print(bottom_line)
 
     def toggle_path(self) -> None:
@@ -70,59 +69,231 @@ class AsciiDisplay:
         self.color_index = (self.color_index + 1) % len(COLORS)
         self.wall_color = COLORS[self.color_index]
 
+    # ---------------------------------------------------------
+    # PAREDES
+    # ---------------------------------------------------------
+
     def _cell_has_wall_north(self, value: int) -> bool:
-        """True si la celda tiene pared Norte (bit 0)."""
+        """True si la celda tiene pared Norte."""
         return bool(value & 1)
 
     def _cell_has_wall_east(self, value: int) -> bool:
-        """True si la celda tiene pared Este (bit 1)."""
+        """True si la celda tiene pared Este."""
         return bool(value & 2)
 
     def _cell_has_wall_south(self, value: int) -> bool:
-        """True si la celda tiene pared Sur (bit 2)."""
+        """True si la celda tiene pared Sur."""
         return bool(value & 4)
 
     def _cell_has_wall_west(self, value: int) -> bool:
-        """True si la celda tiene pared Oeste (bit 3)."""
+        """True si la celda tiene pared Oeste."""
         return bool(value & 8)
 
-    def _render_row(self, y: int) -> Tuple[str, str]:
-        """Renderiza una fila del laberinto (paredes Norte y contenido)."""
-        top_line = ""
-        mid_line = ""
+    def _vertical_wall(self, y: int, x: int) -> bool:
+        """
+        Comprueba si existe una pared vertical en una posición.
+
+        x representa la frontera entre columnas.
+        """
+
         width = len(self.grid[0])
 
+        if x == 0:
+            return self._cell_has_wall_west(self.grid[y][0])
+
+        if x == width:
+            return self._cell_has_wall_east(
+                self.grid[y][width - 1]
+            )
+
+        return (
+            self._cell_has_wall_east(self.grid[y][x - 1])
+            or self._cell_has_wall_west(self.grid[y][x])
+        )
+
+    def _junction(
+            self,
+            left: bool,
+            right: bool,
+            up: bool,
+            down: bool,
+    ) -> str:
+        """
+        Devuelve el carácter correcto para una intersección.
+
+        Orden:
+            left, right, up, down
+        """
+
+        connections = (left, right, up, down)
+
+        chars = {
+            (False, False, False, False): " ",
+
+            # Una sola dirección
+            (True, False, False, False): "─",
+            (False, True, False, False): "─",
+            (False, False, True, False): "│",
+            (False, False, False, True): "│",
+
+            # Dos direcciones
+            (True, True, False, False): "─",
+            (False, False, True, True): "│",
+
+            (False, True, False, True): "┌",
+            (True, False, False, True): "┐",
+            (False, True, True, False): "└",
+            (True, False, True, False): "┘",
+
+            # Tres direcciones
+            (True, True, False, True): "┬",
+            (True, True, True, False): "┴",
+            (True, False, True, True): "┤",
+            (False, True, True, True): "├",
+
+            # Cuatro direcciones
+            (True, True, True, True): "┼",
+        }
+
+        return chars[connections]
+
+    def _render_top_line(self, y: int) -> str:
+        """
+        Dibuja la línea superior de una fila.
+
+        Aquí aparecen las paredes horizontales y
+        las intersecciones.
+        """
+
+        width = len(self.grid[0])
+        line = ""
+
+        for x in range(width + 1):
+
+            # ¿Hay pared hacia la izquierda?
+            left = (
+                x > 0
+                and self._cell_has_wall_north(self.grid[y][x - 1])
+            )
+
+            # ¿Hay pared hacia la derecha?
+            right = (
+                x < width
+                and self._cell_has_wall_north(self.grid[y][x])
+            )
+
+            # ¿Hay pared vertical arriba?
+            up = (
+                y > 0
+                and self._vertical_wall(y - 1, x)
+            )
+
+            # ¿Hay pared vertical abajo?
+            down = self._vertical_wall(y, x)
+
+            line += self.wall_color
+            line += self._junction(left, right, up, down)
+            line += self.reset_color
+
+            # Segmento horizontal
+            if x < width:
+                if self._cell_has_wall_north(self.grid[y][x]):
+                    line += self.wall_color + "───" + self.reset_color
+                else:
+                    line += "   "
+
+        return line
+
+    def _render_mid_line(self, y: int) -> str:
+        """Dibuja el contenido de las celdas."""
+
+        width = len(self.grid[0])
+        line = ""
+
         for x in range(width):
-            cell_value = self.grid[y][x]
+
+            # Pared izquierda
+            if self._vertical_wall(y, x):
+                line += self.wall_color + "│" + self.reset_color
+            else:
+                line += " "
+
             coord = (x, y)
 
-            # Pared Norte
-            top_line += self.wall_color + "█" + self.reset_color
-            if self._cell_has_wall_north(cell_value):
-                top_line += self.wall_color + "███" + self.reset_color
-            else:
-                top_line += self.bg_open + "   " + self.reset_color
+            # -------------------------------------------------
+            # 42
+            # -------------------------------------------------
 
-            # Pared Oeste
-            if self._cell_has_wall_west(cell_value):
-                mid_line += self.wall_color + "█" + self.reset_color
-            else:
-                mid_line += self.bg_open + " " + self.reset_color
-
-            # Contenido de la celda
             if coord in self.pattern_42:
-                mid_line += "\033[100m   \033[0m"   # gris oscuro brillante
+                line += self.bg_42 + "   " + self.reset_color
+
+            # -------------------------------------------------
+            # ENTRADA
+            # -------------------------------------------------
+
             elif coord == self.entry:
-                mid_line += "\033[45m   \033[0m"    # bloque magenta/rosa
+                line += "\033[45m S \033[0m"
+
+            # -------------------------------------------------
+            # SALIDA
+            # -------------------------------------------------
+
             elif coord == self.exit:
-                mid_line += "\033[41m   \033[0m"    # bloque rojo
+                line += "\033[41m E \033[0m"
+
+            # -------------------------------------------------
+            # CAMINO
+            # -------------------------------------------------
+
             elif self.show_path and coord in self.shortest_path:
-                mid_line += "\033[46m   \033[0m"    # bloque cian
+                line += "\033[46m   \033[0m"
+
+            # -------------------------------------------------
+            # CELDA VACÍA
+            # -------------------------------------------------
+
             else:
-                mid_line += self.bg_open + "   " + self.reset_color
+                line += self.bg_open + "   " + self.reset_color
 
-        # Cerrar la fila con el borde derecho
-        top_line += self.wall_color + "█" + self.reset_color
-        mid_line += self.wall_color + "█" + self.reset_color
+        # Última pared vertical
+        if self._vertical_wall(y, width):
+            line += self.wall_color + "│" + self.reset_color
+        else:
+            line += " "
 
-        return top_line, mid_line
+        return line
+
+    def _render_bottom_line(self) -> str:
+        """Dibuja la última línea del laberinto."""
+
+        width = len(self.grid[0])
+        y = len(self.grid) - 1
+
+        line = ""
+
+        for x in range(width + 1):
+
+            left = (
+                x > 0
+                and self._cell_has_wall_south(self.grid[y][x - 1])
+            )
+
+            right = (
+                x < width
+                and self._cell_has_wall_south(self.grid[y][x])
+            )
+
+            up = self._vertical_wall(y, x)
+            down = False
+
+            line += self.wall_color
+            line += self._junction(left, right, up, down)
+            line += self.reset_color
+
+            if x < width:
+                if self._cell_has_wall_south(self.grid[y][x]):
+                    line += self.wall_color + "───" + self.reset_color
+                else:
+                    line += "   "
+
+        return line

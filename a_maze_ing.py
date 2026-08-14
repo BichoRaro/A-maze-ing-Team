@@ -1,15 +1,22 @@
+import os
 import sys
+
+from typing import Any, Dict, List, Tuple
+
 from display.ascii_display import AsciiDisplay
 from mazegen.generator import MazeGenerator
-from parse_config import parse_config, ConfigError
 from output_writer import write_output
-from typing import Any, Dict, Tuple
+from parse_config import parse_config, ConfigError
 
 
-def run_menu(config: Dict[str, Any], maze: MazeGenerator, display: AsciiDisplay) -> None:
+def run_menu(config: Dict[str, Any], maze: MazeGenerator,
+             display: AsciiDisplay) -> None:
     """Bucle interactivo con el usuario."""
     while True:
+        os.system('clear')
+        display.render()
         print("\n=== A-Maze-ing ===")
+        print(f"Your seed: {maze.seed}")
         print("1. Re-generate a new maze")
         print("2. Show / Hide the shortest path")
         print("3. Rotate the wall colours")
@@ -17,9 +24,7 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator, display: AsciiDisplay)
         choice = input("Choice? (1-4): ").strip()
 
         if choice == "1":
-            # Re-generar: usar el MISMO maze y MISMO display
-            width = config["width"]
-            height = config["height"]
+            maze.regenerate()
             entry = config["entry"]
             exit_cell = config["exit"]
             perfect = config["perfect"]
@@ -53,8 +58,9 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator, display: AsciiDisplay)
             print("Invalid choice. Please enter 1-4.")
 
 
-def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,
-                                                             list[str]]:
+def build_maze(config: Dict[str, Any]) -> Tuple[
+    MazeGenerator, AsciiDisplay, List[str]
+]:
     width = config["width"]
     height = config["height"]
     entry = config["entry"]
@@ -87,10 +93,9 @@ def build_maze(config: Dict[str, Any]) -> Tuple [MazeGenerator, AsciiDisplay,
         entry=entry,
         exit=exit_cell,
         shortest_path=path_coords,
-        pattern_42=maze.pattern_42_cells
+        pattern_42=maze.pattern_42_cells,
     )
     display.show_path = False
-    display.render()
 
     return maze, display, path_letters
 
