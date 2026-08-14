@@ -42,14 +42,11 @@
   - [x] `render()` → Dibuja el laberinto
   - [x] `toggle_path()` → Mostrar/ocultar camino
   - [x] `set_wall_color()` → Cambiar color de paredes
-  - [ ] `run_menu()` → **PENDIENTE** (está vacío)
+  - [X] `run_menu()` → **PENDIENTE** (está vacío)
 
 ---
 
 ## ⬜ POR HACER (Obligatorio)
-
-- [ ] **display/ascii_display.py**
-  - [ ] `run_menu()` → Menú interactivo (1-4)
 
 - [ ] **Makefile**
   - [ ] `install`
