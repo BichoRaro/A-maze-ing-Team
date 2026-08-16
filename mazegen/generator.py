@@ -4,6 +4,13 @@ from typing import List, Optional, Tuple, Dict
 from collections import deque
 
 
+class MazeError(Exception):
+    """
+    Clase creada para manejar los excepciones del objeto maze.
+    """
+    pass
+
+
 class MazeGenerator:
 
     # Valor de cada pared como bit (se suman para formar el hexadecimal)
@@ -82,59 +89,66 @@ class MazeGenerator:
             for _ in range(self.height)
         ]
         self._place_42()
-        # Lanzamos el DFS desde la celda de entrada
+        self._protect_42()
         entry_x, entry_y = self.entry
         self._carve(entry_x, entry_y)
         if not perfect:
             self._make_imperfect()
 
     def _carve(self, x: int, y: int) -> None:
-        """Algoritmo DFS iterativo que genera el laberinto derribando paredes.
+        """Genera el laberinto mediante DFS iterativo."""
 
-        Usa una pila explícita en vez de recursión para evitar
-        el límite de recursión de Python en laberintos grandes.
-        El backtracking ocurre cuando la pila retrocede al elemento anterior.
-        """
+        # La entrada nunca debe estar dentro del patrón 42
+        if (x, y) in self.pattern_42_cells:
+            raise MazeError("ENTRY cannot be inside the 42 pattern")
 
-        # Usamos una pila explícita en vez de llamadas recursivas
+        # Pila explícita para evitar recursión
         stack = [(x, y)]
 
         # Marcamos la celda inicial como visitada
         self.visited[y][x] = True
 
         while stack:
-            # Cogemos la celda actual (la última de la pila)
+            # Celda actual
             cx, cy = stack[-1]
 
-            # Barajamos las direcciones para generar un laberinto aleatorio
+            # Direcciones aleatorias
             directions = ['North', 'East', 'South', 'West']
             self.rng.shuffle(directions)
 
-            # Buscamos una dirección válida (vecina no visitada)
+            # Buscamos una vecina válida
             moved = False
+
             for direction in directions:
                 dx, dy = self.Move[direction]
                 nx = cx + dx
                 ny = cy + dy
 
-                # Solo avanzamos si la vecina existe y no fue visitada
+                # La vecina debe:
+                # 1. Estar dentro del grid
+                # 2. No pertenecer al patrón 42
+                # 3. No haber sido visitada
                 if (0 <= nx < self.width
                         and 0 <= ny < self.height
+                        and (nx, ny) not in self.pattern_42_cells
                         and not self.visited[ny][nx]):
 
-                    # Derribamos la pared entre la celda actual y la vecina
+                    # Derribamos la pared en ambas celdas
                     opposite = self.opposite_move[direction]
+
                     self.grid[cy][cx][direction] = False
                     self.grid[ny][nx][opposite] = False
 
-                    # Marcamos la vecina como visitada y la añadimos a la pila
+                    # Marcamos la vecina como visitada
                     self.visited[ny][nx] = True
-                    stack.append((nx, ny))
-                    moved = True
-                    break  # ← importante: solo avanzamos UNA dirección por vuelta
 
-            # Si no encontramos ninguna vecina válida → backtrack
-            # (sacamos la celda actual de la pila y volvemos a la anterior)
+                    # Continuamos el DFS desde la nueva celda
+                    stack.append((nx, ny))
+
+                    moved = True
+                    break
+
+            # No hay vecinos válidos → backtracking
             if not moved:
                 stack.pop()
 
@@ -182,46 +196,85 @@ class MazeGenerator:
             self.visited[y_real][x_real] = True
             self.pattern_42_cells.append((x_real, y_real))
 
-    def _add_loops(self, probability: float = 0.3) -> None:
-        """Derriba paredes extra aleatoriamente para crear
-        múltiples caminos."""
+    def _protect_42(self) -> None:
+        """Asegura que el patrón 42 queda completamente aislado."""
 
-        # Recorremos cada fila del laberinto
-        for y in range(self.height):
-            # Recorremos cada columna de esa fila
-            for x in range(self.width):
+        for x, y in self.pattern_42_cells:
+            # Las cuatro paredes de la celda del 42 quedan cerradas
+            for direction in self.Move:
+                self.grid[y][x][direction] = True
 
-                # Intentamos derribar la pared Este:
-                # - que exista celda vecina al Este (no es borde derecho)
-                # - que la pared Este esté cerrada (True)
-                # - que el número aleatorio sea menor que probability
-                # (30% de veces)
-                if (x + 1 < self.width
-                        and (x, y) not in self.pattern_42_cells
-                        and (x + 1, y) not in self.pattern_42_cells
-                        and self.grid[y][x]['East'] is True
-                        and self.rng.random() < probability):
-                    # Abrimos la pared Este de la celda actual
-                    self.grid[y][x]['East'] = False
-                    # Abrimos la pared Oeste de la celda vecina (coherencia)
-                    self.grid[y][x + 1]['West'] = False
+            # Cerramos también la conexión desde cualquier vecino
+            # que pueda apuntar hacia esta celda del 42
+            for direction, (dx, dy) in self.Move.items():
+                nx = x + dx
+                ny = y + dy
 
-                # Mismo proceso pero para la pared Sur
-                if (y + 1 < self.height
-                        and (x, y) not in self.pattern_42_cells
-                        and (x, y + 1) not in self.pattern_42_cells
-                        and self.grid[y][x]['South'] is True
-                        and self.rng.random() < probability):
-                    # Abrimos la pared Sur de la celda actual
-                    self.grid[y][x]['South'] = False
-                    # Abrimos la pared Norte de la celda de abajo (coherencia)
-                    self.grid[y + 1][x]['North'] = False
+                if (0 <= nx < self.width
+                        and 0 <= ny < self.height):
+                    opposite = self.opposite_move[direction]
+                    self.grid[ny][nx][opposite] = True
+
+    def _braid(self, max_dead_ends: int = 2) -> None:
+        """Elimina dead-ends derribando paredes hasta que queden
+        como máximo max_dead_ends callejones sin salida."""
+
+        def is_dead_end(x: int, y: int) -> bool:
+            """Una celda es dead-end si solo tiene 1 pared abierta."""
+            cell = self.grid[y][x]
+            open_walls = sum(1 for v in cell.values() if v is False)
+            return open_walls == 1
+
+        def get_closed_neighbors(x: int, y: int) -> List[Tuple[str, int, int]]:
+            """Devuelve vecinos accesibles con pared cerrada entre ellos."""
+            neighbors = []
+            for direction, (dx, dy) in self.Move.items():
+                nx, ny = x + dx, y + dy
+                if (0 <= nx < self.width
+                        and 0 <= ny < self.height
+                        and self.grid[y][x][direction] is True
+                        and (nx, ny) not in self.pattern_42_cells):
+                    neighbors.append((direction, nx, ny))
+            return neighbors
+
+        # Bucle principal: seguir hasta que queden <= max_dead_ends
+        while True:
+            # Encontrar todos los dead-ends actuales
+            dead_ends = [
+                (x, y)
+                for y in range(self.height)
+                for x in range(self.width)
+                if (x, y) not in self.pattern_42_cells
+                and is_dead_end(x, y)
+            ]
+
+            # Si ya tenemos pocos dead-ends, paramos
+            if len(dead_ends) <= max_dead_ends:
+                break
+
+            # Mezclar para aleatoriedad
+            self.rng.shuffle(dead_ends)
+
+            # Eliminar cada dead-end derribando una pared
+            for x, y in dead_ends:
+                if not is_dead_end(x, y):
+                    continue  # puede que ya no sea dead-end
+
+                neighbors = get_closed_neighbors(x, y)
+                if not neighbors:
+                    continue  # no hay vecinos disponibles
+
+                # Elegir un vecino al azar y derribar la pared
+                direction, nx, ny = self.rng.choice(neighbors)
+                opposite = self.opposite_move[direction]
+                self.grid[y][x][direction] = False
+                self.grid[ny][nx][opposite] = False
 
     def _make_imperfect(self, probability: float = 0.3) -> None:
         """Convierte el laberinto en un tablero tipo Pac-Man."""
 
         # Paso 1: crear bucles derribando paredes extra aleatoriamente
-        self._add_loops(probability)
+        self._braid()
 
         # Paso 2: garantizar que las 4 esquinas tienen al menos una salida
         self._open_corners()
@@ -262,29 +315,39 @@ class MazeGenerator:
             self.grid[ny][nx][self.opposite_move[dir1]] = False
 
     def _open_center(self) -> None:
-        """Asegura que el centro del laberinto tiene al
-        menos una conexión abierta."""
+        """Asegura que el centro del laberinto tiene al menos una conexión."""
 
-        # Calculamos las coordenadas del centro del laberinto
         cx = self.width // 2
         cy = self.height // 2
 
         if (cx, cy) in self.pattern_42_cells:
             return
 
-        # Accedemos a la celda central (recuerda: [fila][columna] = [y][x])
         cell = self.grid[cy][cx]
 
-        # Si ya tiene alguna pared abierta (False), no hacemos nada
-        # any() devuelve True si al menos UNA condición es True
-        if any(not cell[d] for d in ['North', 'East', 'South', 'West']):
+        # El centro ya tiene una conexión
+        if any(not cell[d] for d in self.Move):
             return
 
-        # Si está completamente cerrada (puede pasar si cae
-        # dentro del patrón 42)
-        # abrimos la pared Este y la pared Oeste de su vecina (coherencia)
-        self.grid[cy][cx]['East'] = False
-        self.grid[cy][cx + 1]['West'] = False
+        # Buscar una dirección válida que no conecte con el 42
+        directions = list(self.Move.items())
+        self.rng.shuffle(directions)
+
+        for direction, (dx, dy) in directions:
+            nx = cx + dx
+            ny = cy + dy
+
+            if not (0 <= nx < self.width and 0 <= ny < self.height):
+                continue
+
+            if (nx, ny) in self.pattern_42_cells:
+                continue
+
+            opposite = self.opposite_move[direction]
+
+            self.grid[cy][cx][direction] = False
+            self.grid[ny][nx][opposite] = False
+            return
 
     def bfs(self) -> List[str]:
         """Encuentra el camino más corto entre entrada y salida usando BFS.
@@ -295,6 +358,12 @@ class MazeGenerator:
 
         entry = self.entry
         exit_cell = self.exit_cell
+
+        if entry in self.pattern_42_cells:
+            raise MazeError("ENTRY cannot be inside the 42 pattern.")
+
+        if exit_cell in self.pattern_42_cells:
+            raise MazeError("EXIT cannot be inside the 42 pattern.")
 
         # Cola BFS: empezamos desde la entrada
         queue = deque([entry])
@@ -399,7 +468,7 @@ class MazeGenerator:
 
     def path_to_coords(self, path: list[str]) -> list[tuple[int, int]]:
         """Convierte lista direcciones a cordenadas"""
-        x, y = self. entry
+        x, y = self.entry
         coords: list[tuple[int, int]] = [(x, y)]
 
         letter_to_move = {
@@ -410,7 +479,12 @@ class MazeGenerator:
         }
 
         for step in path:
-            dx, dy = letter_to_move[step]
+            try:
+                dx, dy = letter_to_move[step]
+            except KeyError:
+                raise ValueError(
+                    f"invalid direction letter {step!r}; expected one of 'N', 'E', 'S', 'W'"
+                )
             x += dx
             y += dy
             coords.append((x, y))
