@@ -1,24 +1,40 @@
-"""Configuration file parser for the A-Maze-ing project."""
+"""
+Modulo de lectura y validacion del fichero de configuracion del
+proyecto A-Maze-ing.
+Args:
+    Ninguno.
+Returns:
+    Ninguno.
+Raises:
+    Ninguna.
+"""
 import os
 
 
 class ConfigError(Exception):
-    """Custom exception for configuration file errors."""
+    """
+    Excepcion para los errores del fichero de configuracion.
+    Args:
+        Ninguno.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
+    """
 
     pass
 
 
 def parse_config(file_route: str) -> dict:
-    """Parse and validate a maze configuration file.
-
+    """
+    Analiza y valida el fichero de configuracion del laberinto.
     Args:
-        file_route: Path to the configuration file.
-
+        file_route: Ruta del fichero de configuracion.
     Returns:
-        A dict with validated and typed configuration values.
-
+        Diccionario con los valores de configuracion validados y tipados.
     Raises:
-        ConfigError: If the file is missing, malformed, or has invalid values.
+        ConfigError: Si el fichero falta, esta mal formado o tiene
+            valores invalidos.
     """
     config_raw = read_config(file_route)
     validate_keys(config_raw)
@@ -27,16 +43,15 @@ def parse_config(file_route: str) -> dict:
 
 
 def read_config(ruta_config: str) -> dict:
-    """Read raw key=value pairs from a config file.
-
+    """
+    Lee los pares clave=valor en bruto del fichero de configuracion.
     Args:
-        ruta_config: Path to the configuration file.
-
+        ruta_config: Ruta del fichero de configuracion.
     Returns:
-        A dict of raw string key-value pairs.
-
+        Diccionario con los pares clave-valor en formato texto.
     Raises:
-        ConfigError: If the file cannot be found or has syntax errors.
+        ConfigError: Si el fichero no se encuentra o tiene errores
+            de sintaxis.
     """
     config_raw: dict = {}
     try:
@@ -63,13 +78,14 @@ def read_config(ruta_config: str) -> dict:
 
 
 def validate_keys(data: dict) -> None:
-    """Ensure all mandatory keys are present in the raw config dict.
-
+    """
+    Comprueba que estan presentes todas las claves obligatorias.
     Args:
-        data: Raw config dict to validate.
-
+        data: Diccionario de configuracion en bruto.
+    Returns:
+        Ninguno.
     Raises:
-        ConfigError: If any mandatory key is missing.
+        ConfigError: Si falta alguna clave obligatoria.
     """
     required_keys = {'WIDTH', 'HEIGHT', 'ENTRY', 'EXIT', 'OUTPUT_FILE',
                      'PERFECT'}
@@ -79,16 +95,14 @@ def validate_keys(data: dict) -> None:
 
 
 def typing_validating(data: dict) -> dict:
-    """Convert and validate raw config values to their proper types.
-
+    """
+    Convierte y valida los valores de configuracion en bruto.
     Args:
-        data: Raw string config dict.
-
+        data: Diccionario de configuracion en formato texto.
     Returns:
-        A typed config dict ready for use.
-
+        Diccionario de configuracion tipado y listo para usar.
     Raises:
-        ConfigError: If any value fails type or range validation.
+        ConfigError: Si algun valor falla la validacion de tipo o rango.
     """
     validate_keys(data)
     try:
@@ -135,17 +149,15 @@ def typing_validating(data: dict) -> dict:
 
 
 def validate_output_file(filename: str) -> str:
-    """Ensure OUTPUT_FILE is a plain filename, not a path.
-
+    """
+    Comprueba que OUTPUT_FILE es un nombre de fichero simple.
     Args:
-        filename: The raw OUTPUT_FILE value from the config.
-
+        filename: Valor bruto de OUTPUT_FILE en la configuracion.
     Returns:
-        The validated filename.
-
+        Nombre de fichero validado.
     Raises:
-        ConfigError: If the filename contains path separators or is
-            a special path component like '.' or '..'.
+        ConfigError: Si el nombre contiene separadores de ruta o es
+            un componente especial como '.' o '..'.
     """
     if os.path.basename(filename) != filename:
         raise ConfigError(
@@ -160,18 +172,17 @@ def validate_output_file(filename: str) -> str:
 
 def parse_coordinates(coords_str: str, max_width: int,
                       max_height: int) -> tuple:
-    """Parse and validate a coordinate string of the form 'x,y'.
-
+    """
+    Analiza y valida una cadena de coordenadas con formato 'x,y'.
     Args:
-        coords_str: The raw coordinate string.
-        max_width: Maze width bound (exclusive).
-        max_height: Maze height bound (exclusive).
-
+        coords_str: Cadena de coordenadas en bruto.
+        max_width: Limite del ancho del laberinto (exclusivo).
+        max_height: Limite del alto del laberinto (exclusivo).
     Returns:
-        A (x, y) integer tuple.
-
+        Tupla de enteros (x, y).
     Raises:
-        ConfigError: If the format is invalid or coordinates are out of bounds.
+        ConfigError: Si el formato es invalido o las coordenadas
+            quedan fuera de rango.
     """
     if ',' not in coords_str:
         raise ConfigError(
@@ -198,16 +209,14 @@ def parse_coordinates(coords_str: str, max_width: int,
 
 
 def parse_bool(value: str) -> bool:
-    """Parse a boolean-like string value.
-
+    """
+    Analiza un valor booleano expresado como texto.
     Args:
-        value: The raw string (e.g. 'true', 'false', '1', '0').
-
+        value: Cadena en bruto (por ejemplo 'true', 'false', '1', '0').
     Returns:
-        The corresponding bool.
-
+        Valor booleano correspondiente.
     Raises:
-        ConfigError: If the value cannot be interpreted as a boolean.
+        ConfigError: Si el valor no se puede interpretar como booleano.
     """
     lower = value.lower()
     if lower in ("true", "1", "yes"):

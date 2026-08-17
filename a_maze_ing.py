@@ -11,7 +11,17 @@ from parse_config import parse_config, ConfigError
 
 def run_menu(config: Dict[str, Any], maze: MazeGenerator,
              display: AsciiDisplay) -> None:
-    """Bucle interactivo con el usuario."""
+    """
+    Ejecuta el bucle interactivo del menu principal.
+    Args:
+        config: Diccionario con la configuracion del laberinto.
+        maze: Instancia del generador de laberintos en uso.
+        display: Instancia encargada de renderizar el laberinto.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
+    """
     while True:
         os.system('clear')
         display.render()
@@ -41,7 +51,8 @@ def run_menu(config: Dict[str, Any], maze: MazeGenerator,
                 int_grid = maze.grid_to_ints()
                 path_coords = maze.path_to_coords(path_letters)
 
-                write_output(output_file, hex_map, entry, exit_cell, path_letters)
+                write_output(output_file, hex_map, entry,
+                             exit_cell, path_letters)
             except MazeError as e:
                 print(f"Error regenerating maze: {e}")
                 continue
@@ -98,7 +109,6 @@ def build_maze(config: Dict[str, Any]) -> Tuple[
     int_grid = maze.grid_to_ints()
     path_coords = maze.path_to_coords(path_letters)
 
-    # Escribir fichero de salida
     try:
         write_output(output_file, hex_map, entry, exit_cell, path_letters)
     except OSError as e:
@@ -106,7 +116,6 @@ def build_maze(config: Dict[str, Any]) -> Tuple[
             f"Failed writing output file '{output_file}': {e}"
         ) from e
 
-    # Mostrar laberinto y menú interactivo
     display = AsciiDisplay(
         grid=int_grid,
         entry=entry,

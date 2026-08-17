@@ -1,15 +1,17 @@
-"""ASCII display module for the A-Maze-ing project."""
+"""
+Modulo de visualizacion ASCII del proyecto A-Maze-ing.
+"""
 from typing import List, Tuple
 
 Coord = Tuple[int, int]
 
 COLORS = [
-    "\033[37m",   # blanco
-    "\033[31m",   # rojo
-    "\033[32m",   # verde
-    "\033[33m",   # amarillo
-    "\033[34m",   # azul
-    "\033[35m",   # magenta
+    "\033[37m",
+    "\033[31m",
+    "\033[32m",
+    "\033[33m",
+    "\033[34m",
+    "\033[35m",
 ]
 
 
@@ -30,18 +32,23 @@ class AsciiDisplay:
         self.show_path = False
         self.color_index = 0
 
-        # Color de las paredes
         self.wall_color = "\033[37m"
         self.reset_color = "\033[0m"
 
-        # Fondo de las celdas
         self.bg_open = "\033[40m"
 
-        # Color del 42
         self.bg_42 = "\033[100m"
 
     def render(self) -> None:
-        """Renderiza el laberinto completo en la terminal."""
+        """
+        Renderiza el laberinto completo en la terminal.
+        Args:
+            Ninguno.
+        Returns:
+            Ninguno.
+        Raises:
+            Ninguna.
+        """
 
         height = len(self.grid)
 
@@ -52,48 +59,104 @@ class AsciiDisplay:
             print(top_line)
             print(mid_line)
 
-        # Última línea horizontal
         bottom_line = self._render_bottom_line()
         print(bottom_line)
 
     def toggle_path(self) -> None:
-        """Muestra u oculta el camino más corto."""
+        """
+        Muestra u oculta el camino mas corto.
+        Args:
+            Ninguno.
+        Returns:
+            Ninguno.
+        Raises:
+            Ninguna.
+        """
         self.show_path = not self.show_path
 
     def set_wall_color(self, color_code: str) -> None:
-        """Cambia el color de las paredes."""
+        """
+        Cambia el color de las paredes.
+        Args:
+            color_code: Codigo ANSI del color a aplicar.
+        Returns:
+            Ninguno.
+        Raises:
+            Ninguna.
+        """
         self.wall_color = color_code
 
     def rotate_color(self) -> None:
-        """Rota al siguiente color de la lista."""
+        """
+        Rota al siguiente color disponible de la lista.
+        Args:
+            Ninguno.
+        Returns:
+            Ninguno.
+        Raises:
+            Ninguna.
+        """
         self.color_index = (self.color_index + 1) % len(COLORS)
         self.wall_color = COLORS[self.color_index]
 
-    # ---------------------------------------------------------
-    # PAREDES
-    # ---------------------------------------------------------
-
     def _cell_has_wall_north(self, value: int) -> bool:
-        """True si la celda tiene pared Norte."""
+        """
+        Comprueba si la celda tiene pared en el lado Norte.
+        Args:
+            value: Valor entero de la celda.
+        Returns:
+            True si la pared Norte esta cerrada.
+        Raises:
+            Ninguna.
+        """
         return bool(value & 1)
 
     def _cell_has_wall_east(self, value: int) -> bool:
-        """True si la celda tiene pared Este."""
+        """
+        Comprueba si la celda tiene pared en el lado Este.
+        Args:
+            value: Valor entero de la celda.
+        Returns:
+            True si la pared Este esta cerrada.
+        Raises:
+            Ninguna.
+        """
         return bool(value & 2)
 
     def _cell_has_wall_south(self, value: int) -> bool:
-        """True si la celda tiene pared Sur."""
+        """
+        Comprueba si la celda tiene pared en el lado Sur.
+        Args:
+            value: Valor entero de la celda.
+        Returns:
+            True si la pared Sur esta cerrada.
+        Raises:
+            Ninguna.
+        """
         return bool(value & 4)
 
     def _cell_has_wall_west(self, value: int) -> bool:
-        """True si la celda tiene pared Oeste."""
+        """
+        Comprueba si la celda tiene pared en el lado Oeste.
+        Args:
+            value: Valor entero de la celda.
+        Returns:
+            True si la pared Oeste esta cerrada.
+        Raises:
+            Ninguna.
+        """
         return bool(value & 8)
 
     def _vertical_wall(self, y: int, x: int) -> bool:
         """
-        Comprueba si existe una pared vertical en una posición.
-
-        x representa la frontera entre columnas.
+        Comprueba si existe una pared vertical en una posicion dada.
+        Args:
+            y: Fila de la celda.
+            x: Columna que actua como frontera entre celdas.
+        Returns:
+            True si hay una pared vertical en esa frontera.
+        Raises:
+            Ninguna.
         """
 
         width = len(self.grid[0])
@@ -119,10 +182,16 @@ class AsciiDisplay:
             down: bool,
     ) -> str:
         """
-        Devuelve el carácter correcto para una intersección.
-
-        Orden:
-            left, right, up, down
+        Devuelve el caracter correcto para una interseccion.
+        Args:
+            left: True si hay conexion hacia la izquierda.
+            right: True si hay conexion hacia la derecha.
+            up: True si hay conexion hacia arriba.
+            down: True si hay conexion hacia abajo.
+        Returns:
+            Caracter que representa la interseccion resultante.
+        Raises:
+            Ninguna.
         """
 
         connections = (left, right, up, down)
@@ -130,13 +199,11 @@ class AsciiDisplay:
         chars = {
             (False, False, False, False): " ",
 
-            # Una sola dirección
             (True, False, False, False): "─",
             (False, True, False, False): "─",
             (False, False, True, False): "│",
             (False, False, False, True): "│",
 
-            # Dos direcciones
             (True, True, False, False): "─",
             (False, False, True, True): "│",
 
@@ -145,13 +212,11 @@ class AsciiDisplay:
             (False, True, True, False): "└",
             (True, False, True, False): "┘",
 
-            # Tres direcciones
             (True, True, False, True): "┬",
             (True, True, True, False): "┴",
             (True, False, True, True): "┤",
             (False, True, True, True): "├",
 
-            # Cuatro direcciones
             (True, True, True, True): "┼",
         }
 
@@ -159,10 +224,13 @@ class AsciiDisplay:
 
     def _render_top_line(self, y: int) -> str:
         """
-        Dibuja la línea superior de una fila.
-
-        Aquí aparecen las paredes horizontales y
-        las intersecciones.
+        Dibuja la linea superior de una fila del laberinto.
+        Args:
+            y: Fila que se va a dibujar.
+        Returns:
+            Cadena con las paredes horizontales y las intersecciones.
+        Raises:
+            Ninguna.
         """
 
         width = len(self.grid[0])
@@ -170,32 +238,27 @@ class AsciiDisplay:
 
         for x in range(width + 1):
 
-            # ¿Hay pared hacia la izquierda?
             left = (
                 x > 0
                 and self._cell_has_wall_north(self.grid[y][x - 1])
             )
 
-            # ¿Hay pared hacia la derecha?
             right = (
                 x < width
                 and self._cell_has_wall_north(self.grid[y][x])
             )
 
-            # ¿Hay pared vertical arriba?
             up = (
                 y > 0
                 and self._vertical_wall(y - 1, x)
             )
 
-            # ¿Hay pared vertical abajo?
             down = self._vertical_wall(y, x)
 
             line += self.wall_color
             line += self._junction(left, right, up, down)
             line += self.reset_color
 
-            # Segmento horizontal
             if x < width:
                 if self._cell_has_wall_north(self.grid[y][x]):
                     line += self.wall_color + "───" + self.reset_color
@@ -205,14 +268,21 @@ class AsciiDisplay:
         return line
 
     def _render_mid_line(self, y: int) -> str:
-        """Dibuja el contenido de las celdas."""
+        """
+        Dibuja el contenido de las celdas de una fila.
+        Args:
+            y: Fila que se va a dibujar.
+        Returns:
+            Cadena con el contenido y las paredes verticales de la fila.
+        Raises:
+            Ninguna.
+        """
 
         width = len(self.grid[0])
         line = ""
 
         for x in range(width):
 
-            # Pared izquierda
             if self._vertical_wall(y, x):
                 line += self.wall_color + "│" + self.reset_color
             else:
@@ -220,42 +290,21 @@ class AsciiDisplay:
 
             coord = (x, y)
 
-            # -------------------------------------------------
-            # 42
-            # -------------------------------------------------
-
             if coord in self.pattern_42:
                 line += self.bg_42 + "   " + self.reset_color
-
-            # -------------------------------------------------
-            # ENTRADA
-            # -------------------------------------------------
 
             elif coord == self.entry:
                 line += "\033[45m S \033[0m"
 
-            # -------------------------------------------------
-            # SALIDA
-            # -------------------------------------------------
-
             elif coord == self.exit:
                 line += "\033[41m E \033[0m"
-
-            # -------------------------------------------------
-            # CAMINO
-            # -------------------------------------------------
 
             elif self.show_path and coord in self.shortest_path:
                 line += "\033[46m   \033[0m"
 
-            # -------------------------------------------------
-            # CELDA VACÍA
-            # -------------------------------------------------
-
             else:
                 line += self.bg_open + "   " + self.reset_color
 
-        # Última pared vertical
         if self._vertical_wall(y, width):
             line += self.wall_color + "│" + self.reset_color
         else:
@@ -264,7 +313,15 @@ class AsciiDisplay:
         return line
 
     def _render_bottom_line(self) -> str:
-        """Dibuja la última línea del laberinto."""
+        """
+        Dibuja la ultima linea horizontal del laberinto.
+        Args:
+            Ninguno.
+        Returns:
+            Cadena con la linea inferior del laberinto.
+        Raises:
+            Ninguna.
+        """
 
         width = len(self.grid[0])
         y = len(self.grid) - 1

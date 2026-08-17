@@ -1,32 +1,15 @@
 #!/usr/bin/env python3
-"""a_maze_ing - maze output analyzer.
-
-Reads a maze output file and reports two things:
-
-* **Wall coherence** - every shared wall must be encoded the same way by both
-  neighbouring cells.
-* **Perfect vs. playable** - whether the maze reachable from the entry is a
-  *perfect* maze (a single path, i.e. no loops, as required with
-  ``PERFECT=True``) or a *playable* board (no dead-ends besides the ones
-  enclosed by the mandatory "42" pattern, plus several independent routes, as
-  required by default so the maze can be reused as a Pac-Man-like board).
-
-A malformed file produces a clear message and a non-zero exit code rather than
-an error trace, so the tool is safe to run on any input.
-
-Wall encoding (per the subject): one hexadecimal digit per cell, where a set
-bit means the wall is *closed* - bit 0 = North, 1 = East, 2 = South, 3 = West.
-After a blank line the footer holds the entry "x,y", the exit "x,y" and the
-shortest path.
-
-Usage::
-
-    python3 maze_analyzer.py <output_file> [--min-loops N] [--max-dead-ends N]
-
-For the playable (non-perfect) mode the two thresholds are quantifiable and
-adjustable: ``--min-loops`` (default 2) is the minimum number of independent
-routes, and ``--max-dead-ends`` (default 2) the number of real dead-ends
-tolerated -- run with ``--max-dead-ends 0`` to check the no-dead-end bonus.
+"""
+Analizador de ficheros de salida de laberintos de a_maze_ing.
+Comprueba la coherencia de las paredes y determina si el laberinto
+es perfecto o jugable, aplicando los criterios definidos para un
+tablero tipo Pac-Man.
+Args:
+    Ninguno.
+Returns:
+    Ninguno.
+Raises:
+    Ninguna.
 """
 
 from __future__ import annotations
@@ -39,11 +22,20 @@ from enum import IntFlag
 from functools import cached_property
 from typing import Dict, FrozenSet, Iterator, List, Optional, Set, Tuple
 
-Cell = Tuple[int, int]                 # an immutable (row, col) position
+Cell = Tuple[int, int]
 
 
 class Direction(IntFlag):
-    """A wall side. The integer value is the bit used in the file encoding."""
+    """
+    Representa el lado de una pared. El valor entero es el bit usado
+    en la codificacion del fichero.
+    Args:
+        Ninguno.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
+    """
 
     NORTH = 1
     EAST = 2
@@ -52,12 +44,28 @@ class Direction(IntFlag):
 
     @property
     def opposite(self) -> "Direction":
-        """The same wall seen from the neighbouring cell."""
+        """
+        Obtiene la misma pared vista desde la celda vecina.
+        Args:
+            Ninguno.
+        Returns:
+            Direccion opuesta a la actual.
+        Raises:
+            Ninguna.
+        """
         return _OPPOSITE[self]
 
     @property
     def step(self) -> Cell:
-        """The (row, col) offset to the neighbour on this side."""
+        """
+        Obtiene el desplazamiento hacia la celda vecina en este lado.
+        Args:
+            Ninguno.
+        Returns:
+            Tupla (fila, columna) con el desplazamiento.
+        Raises:
+            Ninguna.
+        """
         return _STEP[self]
 
 
@@ -84,18 +92,28 @@ HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 
 class MazeError(Exception):
-    """Raised when the input file cannot be parsed as a maze grid."""
+    """
+    Se lanza cuando el fichero de entrada no se puede interpretar
+    como una cuadricula de laberinto valida.
+    Args:
+        Ninguno.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
+    """
 
 
-# --------------------------------------------------------------------------- #
-# Model
-# --------------------------------------------------------------------------- #
 class Maze:
-    """A parsed maze: the wall grid plus the entry and exit cells.
-
-    The grid stores one integer per cell whose set bits mark *closed* walls,
-    so the whole connectivity analysis is pure bit-twiddling over a graph
-    whose edges are the open passages between adjacent cells.
+    """
+    Laberinto ya interpretado: la cuadricula de paredes junto con
+    las celdas de entrada y salida.
+    Args:
+        Ninguno.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
     """
 
     def __init__(self, grid: List[List[int]], entry: Optional[Cell],
@@ -106,10 +124,17 @@ class Maze:
         self.rows = len(grid)
         self.cols = len(grid[0]) if grid else 0
 
-    # -- construction ------------------------------------------------------- #
     @classmethod
     def from_file(cls, path: str) -> "Maze":
-        """Parse *path*. Raise :class:`MazeError` on a malformed grid."""
+        """
+        Interpreta el fichero indicado como un laberinto.
+        Args:
+            path: Ruta del fichero de salida a analizar.
+        Returns:
+            Instancia de Maze con la cuadricula, entrada y salida.
+        Raises:
+            MazeError: Si la cuadricula esta mal formada.
+        """
         grid: List[List[int]] = []
         footer: List[str] = []
         reading_grid = True
@@ -155,7 +180,6 @@ class Maze:
         except ValueError:
             return None
 
-    # -- grid access -------------------------------------------------------- #
     def __contains__(self, cell: Cell) -> bool:
         row, col = cell
         return 0 <= row < self.rows and 0 <= col < self.cols
@@ -169,15 +193,31 @@ class Maze:
         return self.grid[cell[0]][cell[1]]
 
     def is_fully_closed(self, cell: Cell) -> bool:
-        """True for the isolated cells that draw the mandatory "42" pattern."""
+        """
+        Comprueba si una celda esta totalmente cerrada.
+        Args:
+            cell: Celda a comprobar.
+        Returns:
+            True si la celda forma parte del patron 42.
+        Raises:
+            Ninguna.
+        """
         return self.walls(cell) == ALL_WALLS
 
-    # -- graph -------------------------------------------------------------- #
     def neighbour(self, cell: Cell, side: Direction) -> Cell:
         return cell[0] + side.step[0], cell[1] + side.step[1]
 
     def is_open(self, cell: Cell, side: Direction) -> bool:
-        """True if the wall on *side* is open from both adjacent cells."""
+        """
+        Comprueba si el paso entre una celda y su vecina esta abierto.
+        Args:
+            cell: Celda de origen.
+            side: Lado que se quiere comprobar.
+        Returns:
+            True si la pared esta abierta en ambas celdas adyacentes.
+        Raises:
+            Ninguna.
+        """
         other = self.neighbour(cell, side)
         if other not in self:
             return False
@@ -185,13 +225,29 @@ class Maze:
             and not (self.walls(other) & side.opposite)
 
     def passages(self, cell: Cell) -> Iterator[Cell]:
-        """Yield the neighbours *cell* shares an open passage with."""
+        """
+        Obtiene las celdas vecinas conectadas por un paso abierto.
+        Args:
+            cell: Celda de origen.
+        Returns:
+            Iterador con las celdas vecinas alcanzables.
+        Raises:
+            Ninguna.
+        """
         for side in Direction:
             if self.is_open(cell, side):
                 yield self.neighbour(cell, side)
 
     def region_of(self, start: Cell) -> FrozenSet[Cell]:
-        """Breadth-first set of cells reachable from *start*."""
+        """
+        Calcula las celdas alcanzables desde una celda de inicio.
+        Args:
+            start: Celda desde la que se explora.
+        Returns:
+            Conjunto inmutable de celdas alcanzables mediante BFS.
+        Raises:
+            Ninguna.
+        """
         seen = {start}
         queue = deque([start])
         while queue:
@@ -202,7 +258,15 @@ class Maze:
         return frozenset(seen)
 
     def largest_region(self) -> FrozenSet[Cell]:
-        """Largest connected component, found in a single linear sweep."""
+        """
+        Calcula la componente conexa mas grande del laberinto.
+        Args:
+            Ninguno.
+        Returns:
+            Conjunto inmutable de celdas de la mayor region conexa.
+        Raises:
+            Ninguna.
+        """
         seen: Set[Cell] = set()
         best: FrozenSet[Cell] = frozenset()
         for cell in self:
@@ -215,7 +279,16 @@ class Maze:
         return best
 
     def incoherent_cells(self) -> Tuple[Cell, ...]:
-        """Cells whose wall encoding disagrees with a neighbour."""
+        """
+        Obtiene las celdas cuya pared compartida no coincide con la
+        de su vecina.
+        Args:
+            Ninguno.
+        Returns:
+            Tupla de celdas con codificacion de pared incoherente.
+        Raises:
+            Ninguna.
+        """
         return tuple(
             cell
             for cell in self
@@ -228,15 +301,17 @@ class Maze:
         )
 
 
-# --------------------------------------------------------------------------- #
-# Analysis
-# --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class MazeReport:
-    """Connectivity measurements over the playable region of a maze.
-
-    Raw counts are stored once; every ratio or verdict is derived lazily, so a
-    report is a cheap, self-describing snapshot of one maze.
+    """
+    Medidas de conectividad calculadas sobre la region jugable
+    de un laberinto.
+    Args:
+        Ninguno.
+    Returns:
+        Ninguno.
+    Raises:
+        Ninguna.
     """
 
     maze: Maze
@@ -247,7 +322,15 @@ class MazeReport:
 
     @cached_property
     def open_passages(self) -> int:
-        """Edges of the region graph (each counted once)."""
+        """
+        Cuenta las aristas del grafo de la region.
+        Args:
+            Ninguno.
+        Returns:
+            Numero de pasos abiertos, contando cada uno una vez.
+        Raises:
+            Ninguna.
+        """
         return sum(
             1
             for cell in self.region
@@ -257,7 +340,16 @@ class MazeReport:
 
     @cached_property
     def potential_passages(self) -> int:
-        """Edges the region would have with every interior wall opened."""
+        """
+        Calcula las aristas posibles si se abrieran todas las
+        paredes interiores.
+        Args:
+            Ninguno.
+        Returns:
+            Numero maximo de pasos posibles en la region.
+        Raises:
+            Ninguna.
+        """
         return sum(
             ((r, c + 1) in self.region) + ((r + 1, c) in self.region)
             for r, c in self.region
@@ -265,7 +357,15 @@ class MazeReport:
 
     @property
     def loops(self) -> int:
-        """Independent cycles: ``edges - nodes + 1`` for one component."""
+        """
+        Calcula los ciclos independientes de la region.
+        Args:
+            Ninguno.
+        Returns:
+            Numero de ciclos, segun aristas menos nodos mas uno.
+        Raises:
+            Ninguna.
+        """
         return self.open_passages - len(self.region) + 1
 
     @property
@@ -282,10 +382,14 @@ class MazeReport:
 
     @cached_property
     def disconnected_corridors(self) -> int:
-        """Cells outside the playable region that are not "42" walls.
-
-        These are corridors a player could never reach -- in a Pac-Man level
-        their pacgums would be uncollectable, so the level is unwinnable.
+        """
+        Cuenta los corredores que quedan fuera de la region jugable.
+        Args:
+            Ninguno.
+        Returns:
+            Numero de celdas inalcanzables que no son parte del 42.
+        Raises:
+            Ninguna.
         """
         return sum(
             1
@@ -301,11 +405,15 @@ class MazeReport:
 
     @cached_property
     def dead_ends(self) -> Tuple[int, int]:
-        """``(real, "42"-enclosed)`` counts of single-opening cells.
-
-        A dead-end is *real* when one closed wall could be opened toward a
-        normal cell; it is *enclosed* - and tolerated - when every closed wall
-        faces a fully closed "42" cell or the outer border.
+        """
+        Cuenta los callejones sin salida de la region.
+        Args:
+            Ninguno.
+        Returns:
+            Tupla (reales, encerrados por el 42) de celdas con una
+            unica apertura.
+        Raises:
+            Ninguna.
         """
         real = enclosed = 0
         for cell in self.region:
@@ -327,11 +435,15 @@ class MazeReport:
 
     @cached_property
     def unreachable_key_cells(self) -> Tuple[Cell, ...]:
-        """Pac-Man needs the four corners and the centre as corridors.
-
-        With an odd row/column count the centre is a single cell; with an
-        even one there is no cell dead in the middle, so any of the (up to
-        four) cells surrounding the middle is accepted as the start.
+        """
+        Identifica las esquinas y el centro que deben ser corredores
+        para un tablero tipo Pac-Man.
+        Args:
+            Ninguno.
+        Returns:
+            Tupla ordenada de celdas clave que no son alcanzables.
+        Raises:
+            Ninguna.
         """
         rows, cols = self.maze.rows, self.maze.cols
         corners = {(0, 0), (0, cols - 1), (rows - 1, 0), (rows - 1, cols - 1)}
@@ -342,7 +454,15 @@ class MazeReport:
         return tuple(sorted(missing))
 
     def _centre_candidates(self) -> FrozenSet[Cell]:
-        """The cell(s) around the middle, accounting for even dimensions."""
+        """
+        Calcula la o las celdas centrales del laberinto.
+        Args:
+            Ninguno.
+        Returns:
+            Conjunto inmutable con las celdas candidatas al centro.
+        Raises:
+            Ninguna.
+        """
         rows, cols = self.maze.rows, self.maze.cols
         row_mid = {rows // 2} if rows % 2 else {rows // 2 - 1, rows // 2}
         col_mid = {cols // 2} if cols % 2 else {cols // 2 - 1, cols // 2}
@@ -350,7 +470,15 @@ class MazeReport:
 
 
 def analyze(maze: Maze) -> MazeReport:
-    """Pick the playable region (entry, or the largest one) and measure it."""
+    """
+    Selecciona la region jugable y genera su informe de medidas.
+    Args:
+        maze: Laberinto ya interpretado.
+    Returns:
+        Informe con las medidas de conectividad del laberinto.
+    Raises:
+        Ninguna.
+    """
     if maze.entry is not None and maze.entry in maze:
         region, from_footer = maze.region_of(maze.entry), True
         entry = maze.entry
@@ -363,19 +491,17 @@ def analyze(maze: Maze) -> MazeReport:
     )
 
 
-# --------------------------------------------------------------------------- #
-# Verdict & reporting
-# --------------------------------------------------------------------------- #
 def verdict(report: MazeReport, min_loops: int, max_dead_ends: int) -> str:
-    """Return the one-line conclusion for *report*.
-
-    Two adjustable, quantifiable thresholds drive the playable (non-perfect)
-    verdict:
-
-    * *min_loops* - independent routes a Pac-Man board must keep (default 2;
-      a single loop, i.e. a perfect maze with one wall removed, is not enough);
-    * *max_dead_ends* - real dead-ends tolerated (default 2; set 0 to require a
-      perfectly braided board, which is the no-dead-end bonus).
+    """
+    Determina la conclusion final del analisis del laberinto.
+    Args:
+        report: Informe de medidas del laberinto.
+        min_loops: Rutas independientes minimas exigidas.
+        max_dead_ends: Callejones sin salida reales tolerados.
+    Returns:
+        Linea de texto con el veredicto del analisis.
+    Raises:
+        Ninguna.
     """
     real_dead_ends = report.dead_ends[0]
     if report.incoherent:
@@ -430,7 +556,17 @@ def verdict(report: MazeReport, min_loops: int, max_dead_ends: int) -> str:
 
 
 def render(report: MazeReport, min_loops: int, max_dead_ends: int) -> str:
-    """Build the full human-readable report."""
+    """
+    Construye el informe completo en formato legible.
+    Args:
+        report: Informe de medidas del laberinto.
+        min_loops: Rutas independientes minimas exigidas.
+        max_dead_ends: Callejones sin salida reales tolerados.
+    Returns:
+        Texto completo del informe, listo para mostrar.
+    Raises:
+        Ninguna.
+    """
     maze = report.maze
     real, enclosed = report.dead_ends
     lines = [
@@ -457,7 +593,15 @@ def render(report: MazeReport, min_loops: int, max_dead_ends: int) -> str:
 
 
 def _xy(cell: Cell) -> str:
-    """Render an internal ``(row, col)`` cell as the subject's ``(x, y)``."""
+    """
+    Convierte una celda interna (fila, columna) al formato (x, y).
+    Args:
+        cell: Celda en formato interno.
+    Returns:
+        Cadena con la celda en formato (x, y).
+    Raises:
+        Ninguna.
+    """
     return f"({cell[1]}, {cell[0]})"
 
 
@@ -485,9 +629,6 @@ def _coherence(cells: Tuple[Cell, ...]) -> str:
     return f"{len(cells)} mismatching cell(s) -> {shown}{extra}"
 
 
-# --------------------------------------------------------------------------- #
-# Entry point
-# --------------------------------------------------------------------------- #
 def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Analyze an a_maze_ing output file: wall coherence and "
@@ -509,7 +650,15 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
 
 def main(argv: List[str]) -> int:
-    """Read, analyze and report; return the process exit code."""
+    """
+    Lee, analiza y muestra el informe del laberinto.
+    Args:
+        argv: Argumentos de linea de comandos.
+    Returns:
+        Codigo de salida del proceso.
+    Raises:
+        Ninguna.
+    """
     args = parse_args(argv)
     try:
         maze = Maze.from_file(args.output_file)
@@ -528,6 +677,6 @@ if __name__ == "__main__":
         sys.exit(main(sys.argv[1:]))
     except KeyboardInterrupt:
         sys.exit(130)
-    except Exception as error:        # stay safe on any unexpected input
+    except Exception as error:
         print(f"Unexpected error while analyzing the maze: {error}")
         sys.exit(EXIT_MALFORMED)

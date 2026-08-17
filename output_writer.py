@@ -8,6 +8,19 @@ def write_output(
     exit_cell: Tuple[int, int],
     path: List[str]
 ) -> None:
+    """
+    Escribe el fichero de salida del laberinto.
+    Args:
+        filename: Nombre del fichero donde se escribe el resultado.
+        hex_maze: Laberinto codificado en hexadecimal.
+        entry: Coordenada de entrada del laberinto.
+        exit_cell: Coordenada de salida del laberinto.
+        path: Lista de letras con el camino mas corto.
+    Returns:
+        Ninguno.
+    Raises:
+        OSError: Si el fichero no se puede abrir o escribir.
+    """
 
     with open(filename, 'w') as f:
         f.write(hex_maze + '\n')
