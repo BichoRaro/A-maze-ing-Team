@@ -147,6 +147,9 @@ def main() -> None:
     try:
         maze, display, _ = build_maze(config)
         run_menu(config, maze, display)
+    except KeyboardInterrupt:
+        print("\nProceso interrumpido por el usuario.")
+        return
     except MazeError as e:
         print(f"Error: {e}")
         return

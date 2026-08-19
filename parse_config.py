@@ -11,6 +11,10 @@ Raises:
 import os
 
 
+INT32_MAX = 2_147_483_647
+INT32_MIN = -2_147_483_648
+
+
 class ConfigError(Exception):
     """
     Excepcion para los errores del fichero de configuracion.
@@ -114,6 +118,11 @@ def typing_validating(data: dict) -> dict:
     if width <= 0 or height <= 0:
         raise ConfigError("WIDTH and HEIGHT must be positive integers.")
 
+    if width > INT32_MAX or height > INT32_MAX:
+        raise ConfigError(
+            f"WIDTH and HEIGHT cannot exceed INT_MAX ({INT32_MAX})"
+        )
+
     entry = parse_coordinates(data['ENTRY'], width, height)
     exit_coords = parse_coordinates(data['EXIT'], width, height)
 
@@ -129,6 +138,11 @@ def typing_validating(data: dict) -> dict:
             seed = int(data['SEED'])
         except ValueError:
             raise ConfigError("SEED must be an integer.")
+        if seed < INT32_MAX or seed > INT32_MAX:
+            raise ConfigError(
+                f"SEED must be within 32-bit signed integer limits "
+                f"({INT32_MIN} to ({INT32_MAX})."
+            )
 
     algorithm = data.get('ALGORITHM', 'iterative').lower()
     if algorithm not in ('iterative', 'recursive'):
